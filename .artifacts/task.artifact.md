@@ -1,0 +1,5 @@
+- [x] Исправить `MainActivity.kt` (добавить отсутствующий импорт `FlutterActivity`)
+- [x] Обновить `namespace` и `applicationId` в `android/app/build.gradle.kts`
+- [x] Обновить `PRODUCT_BUNDLE_IDENTIFIER` в `ios/Runner.xcodeproj/project.pbxproj`
+- [x] Выполнить `flutter clean` и проверить сборку
+- [ ] Предупредить пользователя об обновлении Firebase (если используется)

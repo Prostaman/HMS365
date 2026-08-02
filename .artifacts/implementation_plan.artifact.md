@@ -1,39 +1,49 @@
-# План по изменению названия пакета (Package Name)
+# План перехода на Riverpod
 
-Изменение названия пакета с `de.hms365.hms365` на `de.hms365`.
+Рефакторинг проекта hms365 для использования Riverpod в качестве системы управления состоянием.
 
 ## Требуется подтверждение пользователя
 
 > [!IMPORTANT]
-> **Внимание:** Если вы используете Firebase (в проекте есть `firebase.json` и `google-services.json`), после смены названия пакета вам потребуется:
-> 1. Обновить настройки приложения в консоли Firebase или создать новое.
-> 2. Скачать и заменить файл `google-services.json` (для Android) и `GoogleService-Info.plist` (для iOS).
+> Переход на Riverpod изменит структуру инициализации приложения и способ взаимодействия с экранами. Все `StatefulWidget`, отвечающие за логику, станут `ConsumerWidget` или `ConsumerStatefulWidget`.
 
 ## Предложенные изменения
 
-### 1. Android
+### 1. Конфигурация проекта
 
-#### [MODIFY] [build.gradle.kts](file:///Users/trio/development/Unternehmen_HMS365/hms365/android/app/build.gradle.kts)
-- Изменить `namespace = "de.hms365.hms365"` -> `namespace = "de.hms365"`
-- Изменить `applicationId = "de.hms365.hms365"` -> `applicationId = "de.hms365"`
+#### [MODIFY] [pubspec.yaml](file:///Users/trio/development/Unternehmen_HMS365/hms365/pubspec.yaml)
+- Добавить `flutter_riverpod: ^2.5.1`.
 
-#### [MODIFY] [MainActivity.kt](file:///Users/trio/development/Unternehmen_HMS365/hms365/android/app/src/main/kotlin/de/hms365/hms365/MainActivity.kt)
-- Обновить `package de.hms365.hms365` -> `package de.hms365`
+### 2. Сервисы и Провайдеры (Новые файлы)
 
-#### [MOVE] Перемещение папок
-- Переместить `MainActivity.kt` из `android/app/src/main/kotlin/de/hms365/hms365/` в `android/app/src/main/kotlin/de/hms365/`.
-- Удалить пустую папку `de/hms365/hms365`.
+#### [NEW] [providers.dart](file:///Users/trio/development/Unternehmen_HMS365/hms365/lib/providers.dart)
+- `authServiceProvider`: предоставляет экземпляр `AuthService`.
+- `firestoreServiceProvider`: предоставляет экземпляр `FirestoreService`.
+- `locationServiceProvider`: предоставляет экземпляр `LocationService`.
+- `authStateProvider`: StreamProvider, следящий за статусом авторизации (заменяет `StreamBuilder` в `main.dart`).
 
-### 2. iOS
+### 3. Инициализация
 
-#### [MODIFY] [project.pbxproj](file:///Users/trio/development/Unternehmen_HMS365/hms365/ios/Runner.xcodeproj/project.pbxproj)
-- Заменить все вхождения `de.hms365.hms365` на `de.hms365`.
+#### [MODIFY] [main.dart](file:///Users/trio/development/Unternehmen_HMS365/hms365/lib/main.dart)
+- Обернуть `MobileApp` в `ProviderScope`.
+- Переписать `_RootRouter` на `ConsumerWidget`, используя `authStateProvider.watch()`.
 
-### 3. Общее
-- Выполнить `flutter clean`.
+### 4. Экраны
+
+#### [MODIFY] [login_screen.dart](file:///Users/trio/development/Unternehmen_HMS365/hms365/lib/screens/login_screen.dart)
+- Превратить в `ConsumerStatefulWidget` (контроллеры текста оставим внутри для простоты, либо вынесем в провайдер).
+- Использовать `ref.read(authServiceProvider)` для вызова метода входа.
+
+#### [MODIFY] [tracking_screen.dart](file:///Users/trio/development/Unternehmen_HMS365/hms365/lib/screens/tracking_screen.dart)
+- Превратить в `ConsumerWidget`.
+- Использовать провайдеры для получения данных из Firestore.
 
 ## План верификации
 
+### Автоматизированные тесты
+- Запуск `flutter test` (если есть тесты).
+
 ### Ручная проверка
-- Проверка успешности сборки: `flutter build apk`.
-- Проверка iOS (если возможно): `flutter build ios --no-codesign`.
+- Проверка процесса логина.
+- Проверка начала трекинга после входа.
+- Проверка разлогина.

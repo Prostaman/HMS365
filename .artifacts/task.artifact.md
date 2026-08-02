@@ -1,5 +1,6 @@
-- [x] Исправить `MainActivity.kt` (добавить отсутствующий импорт `FlutterActivity`)
-- [x] Обновить `namespace` и `applicationId` в `android/app/build.gradle.kts`
-- [x] Обновить `PRODUCT_BUNDLE_IDENTIFIER` в `ios/Runner.xcodeproj/project.pbxproj`
-- [x] Выполнить `flutter clean` и проверить сборку
-- [ ] Предупредить пользователя об обновлении Firebase (если используется)
+- [x] Добавить зависимость `flutter_riverpod` в `pubspec.yaml`
+- [x] Создать файл `lib/providers.dart` с основными провайдерами
+- [x] Обновить `lib/main.dart`: добавить `ProviderScope` и переписать роутер
+- [x] Рефакторинг `lib/screens/login_screen.dart` под Riverpod
+- [x] Рефакторинг `lib/screens/tracking_screen.dart` под Riverpod
+- [x] Проверка сборки и базового функционала

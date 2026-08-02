@@ -2,27 +2,15 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/location_event.dart';
 import 'firestore_service.dart';
 
 /// Отвечает за запрос разрешений и периодическую отправку координат
 /// в Firestore, пока сотрудник залогинен в приложении.
-///
-/// Важно про Android:
-/// - ACCESS_FINE_LOCATION нужен всегда.
-/// - ACCESS_BACKGROUND_LOCATION нужен, если хотим слать координаты,
-///   когда приложение свёрнуто. Android 10+ показывает отдельный
-///   системный диалог для этого разрешения — запрашивать его нужно
-///   ПОСЛЕ того как выдано обычное разрешение на геолокацию, не одновременно.
-/// - Для реальной надёжной фоновой работы (не убьётся системой) нужен
-///   Foreground Service с постоянным уведомлением — см. пакет
-///   flutter_background_service и настройку в AndroidManifest.xml
-///   (см. комментарии в android/app/src/main/AndroidManifest.xml).
 class LocationService {
   final FirestoreService _firestoreService = FirestoreService();
-  StreamSubscription<Position>? _positionSubscription;
+  Timer? _timer;
 
   /// Запрашивает нужные разрешения по порядку.
   /// Возвращает true, если можно начинать трекинг.
@@ -41,42 +29,54 @@ class LocationService {
     final bgStatus = await Permission.locationAlways.status;
     if (!bgStatus.isGranted) {
       await Permission.locationAlways.request();
-      // Не блокируем работу, если пользователь отказал фоновому
-      // доступу — просто трекинг будет работать, пока приложение открыто.
     }
 
     return true;
   }
 
-  /// Начать периодическую отправку координат текущего пользователя.
-  /// [intervalMeters] — минимальное перемещение (в метрах) для
-  /// нового замера, чтобы не спамить Firestore, когда сотрудник стоит на месте.
-  void startTracking({double intervalMeters = 25}) {
+  /// Начать периодическую отправку координат текущего пользователя каждые 15 минут.
+  void startTracking() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
 
-    final settings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: intervalMeters.toInt(),
-    );
+    // Сразу отправляем первую точку
+    _sendCurrentLocation(uid);
 
-    _positionSubscription?.cancel();
-    _positionSubscription =
-        Geolocator.getPositionStream(locationSettings: settings).listen((
-          Position pos,
-        ) {
-          final event = LocationEvent(
-            userId: uid,
-            latitude: pos.latitude,
-            longitude: pos.longitude,
-            timestamp: Timestamp.now().toDate(),
-          );
-          _firestoreService.pushLocation(event);
-        });
+    // Запускаем таймер на каждые 15 минут
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(minutes: 15), (timer) {
+      _sendCurrentLocation(uid);
+    });
+  }
+
+  /// Получает текущую позицию и отправляет её в Firestore
+  Future<void> _sendCurrentLocation(String uid) async {
+    try {
+      // Запрашиваем именно свежую позицию.
+      // Если в течение 30 сек не поймаем сигнал - будет исключение.
+      final Position pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          timeLimit: Duration(minutes: 5),
+        ),
+      );
+
+      final event = LocationEvent(
+        userId: uid,
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+        accuracy: pos.accuracy,
+        timestamp: pos.timestamp, // Используем время самого GPS-замера
+      );
+
+      await _firestoreService.pushLocation(event);
+    } catch (e) {
+      print('Не удалось получить свежую позицию: $e');
+    }
   }
 
   void stopTracking() {
-    _positionSubscription?.cancel();
-    _positionSubscription = null;
+    _timer?.cancel();
+    _timer = null;
   }
 }

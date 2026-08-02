@@ -2,32 +2,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Employee {
   final String uid;
-  final String name;
+  final String firstName;
+  final String lastName;
   final String email;
-  final bool isManager;
 
   Employee({
     required this.uid,
-    required this.name,
+    required this.firstName,
+    required this.lastName,
     required this.email,
-    this.isManager = false,
   });
+
+  String get fullName => '$firstName $lastName';
 
   factory Employee.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Employee(
       uid: doc.id,
-      name: data['name'] ?? '',
+      firstName: data['first_name'] ?? '',
+      lastName: data['last_name'] ?? '',
       email: data['email'] ?? '',
-      isManager: data['isManager'] ?? false,
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'email': email,
-      'isManager': isManager,
-    };
+    return {'first_name': firstName, 'last_name': lastName, 'email': email};
   }
 }

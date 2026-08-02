@@ -29,11 +29,13 @@ class Zone {
 
   factory Zone.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final GeoPoint point = data['coordinate'] as GeoPoint;
+
     return Zone(
       id: doc.id,
       name: data['name'] ?? '',
-      latitude: (data['latitude'] as num).toDouble(),
-      longitude: (data['longitude'] as num).toDouble(),
+      latitude: point.latitude,
+      longitude: point.longitude,
       radiusMeters: (data['radiusMeters'] as num).toDouble(),
       assignedUserIds: List<String>.from(data['assignedUserIds'] ?? []),
     );
@@ -42,8 +44,7 @@ class Zone {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'latitude': latitude,
-      'longitude': longitude,
+      'coordinate': GeoPoint(latitude, longitude),
       'radiusMeters': radiusMeters,
       'assignedUserIds': assignedUserIds,
     };

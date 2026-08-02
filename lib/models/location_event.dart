@@ -5,12 +5,14 @@ class LocationEvent {
   final String userId;
   final double latitude;
   final double longitude;
+  final double? accuracy; // Точность в метрах
   final DateTime timestamp;
 
   LocationEvent({
     required this.userId,
     required this.latitude,
     required this.longitude,
+    this.accuracy,
     required this.timestamp,
   });
 
@@ -20,6 +22,9 @@ class LocationEvent {
       userId: data['userId'] ?? '',
       latitude: (data['latitude'] as num).toDouble(),
       longitude: (data['longitude'] as num).toDouble(),
+      accuracy: data['accuracy'] != null
+          ? (data['accuracy'] as num).toDouble()
+          : null,
       timestamp: (data['timestamp'] as Timestamp).toDate(),
     );
   }
@@ -29,6 +34,7 @@ class LocationEvent {
       'userId': userId,
       'latitude': latitude,
       'longitude': longitude,
+      if (accuracy != null) 'accuracy': accuracy,
       'timestamp': Timestamp.fromDate(timestamp),
     };
   }

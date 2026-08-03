@@ -44,16 +44,4 @@ class FirestoreService {
   }
 
   // ---- Остальные методы (для десктопа) ----
-
-  // Stream<List<Zone>> zonesStream() { ... }
-  // Future<void> addZone(Zone zone) { ... }
-  // Stream<List<Employee>> employeesStream() { ... }
-
-  // Stream<LocationEvent?> lastLocationForUser(String userId) {
-  //   return _db
-  //       .collection('workers')
-  //       .doc(userId)
-  //       .collection('location_history')
-  //       ...
-  // }
 }

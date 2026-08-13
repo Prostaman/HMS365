@@ -1,28 +1,26 @@
-# Результаты перехода на Riverpod
+# Результаты внедрения Firebase Crashlytics
 
-Я успешно перевел проект на использование **Riverpod** для управления состоянием. Все изменения выполнены в соответствии с планом, существующие тесты не затрагивались.
+Я успешно интегрировал **Firebase Crashlytics** в проект. Теперь все критические ошибки приложения будут автоматически отправляться в консоль Firebase для анализа.
 
-## Основные изменения:
+## Что было сделано:
 
-1.  **Инфраструктура:**
-    - В `pubspec.yaml` добавлена библиотека `flutter_riverpod`.
-    - В `main.dart` приложение обернуто в `ProviderScope`.
-2.  **Провайдеры:**
-    - Создан файл [providers.dart](file:///Users/trio/development/Unternehmen_HMS365/hms365/lib/providers.dart), где определены провайдеры для всех сервисов (`AuthService`, `FirestoreService`, `LocationService`) и состояния аутентификации.
-3.  **Роутинг:**
-    - В [main.dart](file:///Users/trio/development/Unternehmen_HMS365/hms365/lib/main.dart) `StreamBuilder` заменен на `ref.watch(authStateProvider)`, что сделало логику переключения экранов более чистой и реактивной.
-4.  **Экраны:**
-    - [login_screen.dart](file:///Users/trio/development/Unternehmen_HMS365/hms365/lib/screens/login_screen.dart): теперь использует `ConsumerStatefulWidget` и получает доступ к сервисам через `ref`.
-    - [tracking_screen.dart](file:///Users/trio/development/Unternehmen_HMS365/hms365/lib/screens/tracking_screen.dart): переведен на `ConsumerStatefulWidget`. Список зон теперь загружается через `userZonesProvider`.
+1.  **Конфигурация проекта:**
+    - В [pubspec.yaml](file:///Users/trio/development/Unternehmen_HMS365/hms365/pubspec.yaml) добавлена библиотека `firebase_crashlytics`.
+2.  **Настройка Android (Gradle):**
+    - В [settings.gradle.kts](file:///Users/trio/development/Unternehmen_HMS365/hms365/android/settings.gradle.kts) добавлен плагин Crashlytics.
+    - В [build.gradle.kts](file:///Users/trio/development/Unternehmen_HMS365/hms365/android/app/build.gradle.kts) плагин применен к приложению. Это необходимо для корректной обработки нативных сбоев.
+3.  **Инициализация в коде:**
+    - В [main.dart](file:///Users/trio/development/Unternehmen_HMS365/hms365/lib/main.dart) настроен глобальный перехват ошибок Flutter и системных ошибок через `FirebaseCrashlytics.instance`.
 
-## Как это работает теперь:
-
-- Чтобы получить доступ к любому сервису в виджете, достаточно вызвать `ref.read(имяПровайдера)`.
-- Состояние авторизации отслеживается автоматически: как только Firebase сообщает об изменении пользователя, Riverpod обновляет `authStateProvider`, и `RootRouter` мгновенно переключает экран.
+## Как это работает:
+- Приложение теперь перехватывает все исключения (exceptions), которые происходят во Flutter-виджетах.
+- Также перехватываются асинхронные ошибки через `PlatformDispatcher`.
+- Отчеты будут появляться в разделе **Crashlytics** консоли Firebase.
 
 > [!NOTE]
-> Из-за конфликтов в переменных окружения вашей системы (Android SDK), для запуска проекта может потребоваться выполнение команды `unset ANDROID_PREFS_ROOT && flutter run` в терминале.
+> При локальной сборке через `flutter build apk` может возникнуть системная ошибка Gradle, связанная с переменными окружения (`ANDROID_PREFS_ROOT`). Для её обхода используйте команду:
+> `unset ANDROID_PREFS_ROOT && flutter run`
 
-## Проверка:
-- Код успешно компилируется.
-- Провайдеры корректно связывают сервисы с UI.
+## Следующие шаги:
+1. Запустите приложение.
+2. После первого запуска перейдите в [Firebase Console](https://console.firebase.google.com/) -> **Release & Monitor** -> **Crashlytics**, чтобы убедиться, что панель активировалась.

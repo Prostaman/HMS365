@@ -39,6 +39,7 @@ dependencies:
   firebase_auth: ^5.1.0
   cloud_firestore: ^5.0.0
   flutter_riverpod: ^2.5.1
+  firebase_crashlytics: ^4.0.1
 
     # Геолокация и разрешения (мобильная специфика — в общий пакет не выносим,
     # т.к. desktop_app это не нужно)

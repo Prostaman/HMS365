@@ -6,6 +6,7 @@ import 'services/auth_service.dart';
 import 'services/firestore_service.dart';
 import 'services/location_service.dart';
 import 'models/zone.dart';
+import 'models/task.dart' as model_task;
 
 // Сервисы
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -35,6 +36,14 @@ final currentEmployeeProvider = FutureProvider<Employee?>((ref) async {
 // Зоны пользователя
 final userZonesProvider = StreamProvider.family<List<Zone>, String>((ref, uid) {
   return ref.watch(firestoreServiceProvider).zonesForUserStream(uid);
+});
+
+// Задания для конкретной зоны
+final zoneTasksProvider = StreamProvider.family<List<model_task.Task>, String>((
+  ref,
+  zoneId,
+) {
+  return ref.watch(firestoreServiceProvider).tasksStream(zoneId);
 });
 
 // Провайдер текущей позиции (для UI)

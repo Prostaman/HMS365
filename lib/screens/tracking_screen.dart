@@ -5,6 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../providers.dart';
 import '../models/zone.dart';
+import '../models/task.dart' as model_task;
+import '../ui_helper.dart';
 
 /// Экран, который видит сотрудник на Android.
 /// Простой: статус трекинга + кнопка вкл/выкл + выход из аккаунта.
@@ -130,15 +132,6 @@ class _AssignedZonesList extends ConsumerWidget {
 
   const _AssignedZonesList({required this.uid});
 
-  Future<void> _openInGoogleMaps(double lat, double lon) async {
-    final url = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$lat,$lon',
-    );
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final zonesAsync = ref.watch(userZonesProvider(uid));
@@ -177,60 +170,7 @@ class _AssignedZonesList extends ConsumerWidget {
 
         return Column(
           children: zonesWithDistance.map((entry) {
-            final zone = entry.key;
-            final distance = entry.value;
-
-            String distanceText = 'Определяем...';
-            if (distance != null) {
-              distanceText = distance > 1000
-                  ? '${(distance / 1000).toStringAsFixed(1)} км'
-                  : '${distance.round()} м';
-            }
-
-            final isInZone = distance != null && distance <= zone.radiusMeters;
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              elevation: isInZone ? 4 : 1,
-              // Меняем фон карточки на светло-зеленый, если пользователь в зоне
-              color: isInZone ? Colors.green.shade50 : null,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: isInZone
-                    ? const BorderSide(color: Colors.green, width: 1.5)
-                    : BorderSide.none,
-              ),
-              child: ListTile(
-                leading: InkWell(
-                  onTap: () => _openInGoogleMaps(zone.latitude, zone.longitude),
-                  borderRadius: BorderRadius.circular(20),
-                  child: CircleAvatar(
-                    backgroundColor: isInZone
-                        ? Colors.green
-                        : Colors.orange.shade100,
-                    child: Icon(
-                      isInZone ? Icons.check : Icons.place,
-                      color: isInZone ? Colors.white : Colors.orange,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  zone.name,
-                  style: TextStyle(
-                    fontWeight: isInZone ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                subtitle: isInZone
-                    ? const Text(
-                        'Вы на объекте',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      )
-                    : Text('До объекта: $distanceText'),
-              ),
-            );
+            return _ZoneCard(zone: entry.key, distance: entry.value);
           }).toList(),
         );
       },
@@ -239,6 +179,146 @@ class _AssignedZonesList extends ConsumerWidget {
         child: CircularProgressIndicator(),
       ),
       error: (err, stack) => Text('Ошибка загрузки: $err'),
+    );
+  }
+}
+
+class _ZoneCard extends ConsumerWidget {
+  final Zone zone;
+  final double? distance;
+
+  const _ZoneCard({required this.zone, required this.distance});
+
+  Future<void> _openInGoogleMaps(double lat, double lon) async {
+    final url = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$lat,$lon',
+    );
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Проверяем наличие заданий для этой зоны
+    final tasksAsync = ref.watch(zoneTasksProvider(zone.id));
+    final hasTasks = tasksAsync.value?.isNotEmpty ?? false;
+
+    final isInZone = distance != null && distance! <= zone.radiusMeters;
+
+    String distanceText = 'Определяем...';
+    if (distance != null) {
+      distanceText = distance! > 1000
+          ? '${(distance! / 1000).toStringAsFixed(1)} км'
+          : '${distance!.round()} м';
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: isInZone ? 4 : 1,
+      color: isInZone ? Colors.green.shade50 : null,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isInZone
+            ? const BorderSide(color: Colors.green, width: 1.5)
+            : BorderSide.none,
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          // Если заданий нет, скрываем стрелочку и отключаем раскрытие
+          trailing: hasTasks ? null : const SizedBox.shrink(),
+          enabled: hasTasks,
+          leading: InkWell(
+            onTap: () => _openInGoogleMaps(zone.latitude, zone.longitude),
+            borderRadius: BorderRadius.circular(20),
+            child: CircleAvatar(
+              backgroundColor: isInZone ? Colors.green : Colors.orange.shade100,
+              child: Icon(
+                isInZone ? Icons.check : Icons.place,
+                color: isInZone ? Colors.white : Colors.orange,
+              ),
+            ),
+          ),
+          title: Text(
+            zone.name,
+            style: TextStyle(
+              fontWeight: isInZone ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          subtitle: isInZone
+              ? const Text(
+                  'Вы на объекте',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.w500,
+                  ),
+                )
+              : Text('До объекта: $distanceText'),
+          children: hasTasks ? [_TasksList(zoneId: zone.id)] : [],
+        ),
+      ),
+    );
+  }
+}
+
+class _TasksList extends ConsumerWidget {
+  final String zoneId;
+
+  const _TasksList({required this.zoneId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksAsync = ref.watch(zoneTasksProvider(zoneId));
+
+    return tasksAsync.when(
+      data: (tasks) {
+        if (tasks.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          decoration: BoxDecoration(
+            color: applyOpacity(Colors.black, 0.03),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(12),
+              bottomRight: Radius.circular(12),
+            ),
+          ),
+          child: Column(
+            children: [
+              const Divider(height: 1),
+              ...tasks.map((task) {
+                return CheckboxListTile(
+                  value: task.isCompleted,
+                  onChanged: (val) {
+                    if (val != null) {
+                      ref
+                          .read(firestoreServiceProvider)
+                          .updateTaskStatus(zoneId, task.id, val);
+                    }
+                  },
+                  title: Text(
+                    task.description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      decoration: task.isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
+                      color: task.isCompleted ? Colors.grey : Colors.black87,
+                    ),
+                  ),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                );
+              }),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (err, stack) => Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Text('Ошибка задач: $err', style: const TextStyle(fontSize: 12)),
+      ),
     );
   }
 }

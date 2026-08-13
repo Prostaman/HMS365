@@ -1,6 +1,4 @@
-- [x] Добавить зависимость `flutter_riverpod` в `pubspec.yaml`
-- [x] Создать файл `lib/providers.dart` с основными провайдерами
-- [x] Обновить `lib/main.dart`: добавить `ProviderScope` и переписать роутер
-- [x] Рефакторинг `lib/screens/login_screen.dart` под Riverpod
-- [x] Рефакторинг `lib/screens/tracking_screen.dart` под Riverpod
-- [x] Проверка сборки и базового функционала
+- [x] Добавить `firebase_crashlytics` в `pubspec.yaml`
+- [x] Настроить Gradle плагин Crashlytics в `settings.gradle.kts` и `app/build.gradle.kts`
+- [x] Инициализировать Crashlytics в `main.dart`
+- [x] Проверить сборку проекта
